@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WX 透视工具</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-window">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">WX</div>
+        <div>
+          <h1>WX 透视工具</h1>
+          <p id="subtitle">本地微信聊天检索与请假统计</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="ghost" id="quickSyncBtn">快速同步</button>
+        <button class="ghost" id="deepSyncBtn">深度同步</button>
+        <button class="primary" id="openSettingsBtn">设置</button>
+      </div>
+    </header>
+
+    <div class="main-shell">
+      <aside class="sidebar">
+        <nav class="nav">
+          <button class="nav-item active" data-page="search">搜索</button>
+          <button class="nav-item" data-page="stats">请假统计</button>
+          <button class="nav-item" data-page="chats">会话</button>
+          <button class="nav-item" data-page="settings">设置</button>
+        </nav>
+
+        <section class="sidebar-card">
+          <p class="sidebar-label">状态</p>
+          <div class="sidebar-metric">
+            <strong id="metricChats">0</strong>
+            <span>会话</span>
+          </div>
+          <div class="sidebar-metric">
+            <strong id="metricMessages">0</strong>
+            <span>消息</span>
+          </div>
+          <div class="sidebar-metric">
+            <strong id="metricLeaves">0</strong>
+            <span>请假命中</span>
+          </div>
+        </section>
+
+        <section class="sidebar-card">
+          <p class="sidebar-label">数据源</p>
+          <div class="tiny-list">
+            <div>
+              <span>wx 命令</span>
+              <strong id="wxCommandLabel">wx</strong>
+            </div>
+            <div>
+              <span>数据库</span>
+              <strong id="dbPathLabel">-</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="sidebar-card">
+          <p class="sidebar-label">提示</p>
+          <p id="noticeText" class="sidebar-note">请先同步本地微信数据，或者直接搜索，命中后会自动缓存到本地索引。</p>
+        </section>
+      </aside>
+
+      <main class="content">
+        <section id="page-search" class="page active">
+          <div class="search-hero">
+            <div class="search-input-wrap">
+              <input id="searchInput" type="text" placeholder="搜索 请假 / 晚到 / 发烧 / 家长有事">
+              <button class="primary" id="searchBtn">搜索</button>
+            </div>
+            <div class="filter-row">
+              <label>
+                时间
+                <input id="sinceInput" type="date">
+              </label>
+              <label>
+                到
+                <input id="untilInput" type="date">
+              </label>
+              <label>
+                类型
+                <select id="typeFilter">
+                  <option value="text" selected>文字</option>
+                  <option value="">全部</option>
+                  <option value="text">文字</option>
+                  <option value="system">系统</option>
+                  <option value="link">链接</option>
+                  <option value="file">文件</option>
+                </select>
+              </label>
+              <label>
+                范围
+                <select id="scopeFilter">
+                  <option value="all">全部</option>
+                  <option value="private">私聊</option>
+                  <option value="group">群聊</option>
+                </select>
+              </label>
+              <label class="toggle">
+                <input id="liveFallbackToggle" type="checkbox" checked>
+                <span>实时回查 wx-cli</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="page-grid">
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>搜索结果</h2>
+                  <p id="searchSummary">输入关键词开始查找</p>
+                </div>
+                <div class="pill-row" id="searchPills"></div>
+              </div>
+              <div id="resultsList" class="result-list empty-state"></div>
+              <button class="ghost load-more" id="loadMoreBtn" hidden>加载更多</button>
+            </section>
+
+            <aside class="panel preview-panel">
+              <div class="panel-head">
+                <div>
+                  <h2>上下文</h2>
+                  <p id="previewMeta">选择一条结果查看前后文</p>
+                </div>
+                <button class="ghost small" id="copyContextBtn">复制上下文</button>
+              </div>
+              <div id="previewBody" class="preview-body empty-state">这里会显示前后消息。</div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="page-stats" class="page">
+          <div class="page-grid single">
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>请假统计</h2>
+                  <p>按联系人 / 群成员聚合，便于统计孩子的请假记录。</p>
+                </div>
+                <button class="ghost small" id="refreshStatsBtn">刷新统计</button>
+              </div>
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <strong id="statsTotalLeaves">0</strong>
+                  <span>总命中</span>
+                </div>
+                <div class="stat-card">
+                  <strong id="statsContacts">0</strong>
+                  <span>覆盖联系人</span>
+                </div>
+                <div class="stat-card">
+                  <strong id="statsDays">0</strong>
+                  <span>活跃天数</span>
+                </div>
+                <div class="stat-card">
+                  <strong id="statsKeywords">0</strong>
+                  <span>关键词</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h3>按联系人</h3>
+                  <p>最容易直接统计家长 / 学生的请假次数。</p>
+                </div>
+              </div>
+              <div id="leaveByChat" class="table-list"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h3>按日期</h3>
+                  <p>用于看哪几天请假密集。</p>
+                </div>
+              </div>
+              <div id="leaveByDay" class="chip-grid"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h3>高频关键词</h3>
+                  <p>看请假语句里最常出现什么词。</p>
+                </div>
+              </div>
+              <div id="leaveKeywords" class="chip-grid"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="page-chats" class="page">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>会话</h2>
+                <p>最近活跃的联系人和群。</p>
+              </div>
+              <button class="ghost small" id="reloadChatsBtn">重载会话</button>
+            </div>
+            <div id="chatList" class="chat-grid empty-state"></div>
+          </section>
+        </section>
+
+        <section id="page-settings" class="page">
+          <div class="page-grid single">
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>设置</h2>
+                  <p>调整本地同步、实时回查和请假关键词。</p>
+                </div>
+                <button class="ghost small" id="reloadSettingsBtn">重载</button>
+              </div>
+              <div class="settings-grid">
+                <label>
+                  wx 命令
+                  <input id="wxCommandInput" type="text" placeholder="wx">
+                </label>
+                <label>
+                  搜索结果上限
+                  <input id="searchLimitInput" type="number" min="20" max="3000" step="100">
+                </label>
+                <label>
+                  深度同步条数 / 会话
+                  <input id="deepLimitInput" type="number" min="0" max="5000" step="100">
+                </label>
+                <label class="toggle">
+                  <input id="liveFallbackSetting" type="checkbox" checked>
+                  <span>搜索无结果时实时回查 wx-cli</span>
+                </label>
+                <label>
+                  同步模式
+                  <select id="syncModeSelect">
+                    <option value="quick">快速同步</option>
+                    <option value="deep">深度同步</option>
+                    <option value="incremental">增量同步</option>
+                  </select>
+                </label>
+                <label class="wide">
+                  请假关键词
+                  <textarea id="leaveKeywordsInput" rows="8" placeholder="请假\n病假\n事假"></textarea>
+                </label>
+              </div>
+              <div class="button-row">
+                <button class="primary" id="saveSettingsBtn">保存设置</button>
+                <button class="ghost" id="rebuildDerivedBtn">重建统计</button>
+                <button class="ghost" id="openDataFolderBtn">打开数据目录</button>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+    <div id="syncBar" class="sync-bar" hidden>
+      <div>
+        <strong id="syncTitle">同步中</strong>
+        <span id="syncDetail">准备就绪</span>
+      </div>
+      <div class="sync-track"><span id="syncFill"></span></div>
+    </div>
+  </div>
+  <script type="module" src="./src/renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "wx-visual-search",
+  "version": "0.1.0",
+  "description": "Local WeChat chat search and leave-statistics desktop app.",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron ."
+  },
+  "dependencies": {
+    "electron": "^42.2.0",
+    "fuse.js": "^7.1.0",
+    "sql.js": "^1.11.0"
+  }
+}
