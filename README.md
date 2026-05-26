@@ -23,6 +23,7 @@ WX透视工具.exe
 ```
 
 这个 exe 是本地启动器，会启动当前目录里的 Electron 应用。
+第一次从 GitHub 下载源码压缩包后，请先在目录里运行 `npm install`，再双击 exe。
 
 ### 从源码运行
 
@@ -67,4 +68,3 @@ node tests/search-behavior.test.js
 node --check src/indexer.js
 node --check src/renderer.js
 ```
-
